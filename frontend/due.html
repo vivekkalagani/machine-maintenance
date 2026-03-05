@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Due Machines</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark">
+  <div class="container-fluid">
+    <span class="navbar-brand">Due & Upcoming Machines</span>
+    <a href="index.html" class="text-white">Dashboard</a>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <h4>Overdue Machines</h4>
+  <ul id="overdueList"></ul>
+
+  <h4 class="mt-4">Upcoming (Next 7 Days)</h4>
+  <ul id="upcomingList"></ul>
+</div>
+
+<script>
+fetch("http://localhost:4000/api/machines/due")
+.then(res => res.json())
+.then(data => {
+  overdueList.innerHTML =
+    data.map(m => `<li>${m.name} - ${m.status}</li>`).join("");
+});
+
+fetch("http://localhost:4000/api/machines/upcoming")
+.then(res => res.json())
+.then(data => {
+  upcomingList.innerHTML =
+    data.map(m => `<li>${m.name} - Due Soon</li>`).join("");
+});
+</script>
+
+</body>
+</html>

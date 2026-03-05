@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Maintenance Tickets</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="p-4">
+
+<h2>Maintenance Tickets</h2>
+
+<form id="ticketForm" class="mb-3">
+  <select id="machineSelect" class="form-control mb-2" required>
+    <option value="">Select Machine</option>
+  </select>
+
+  <input type="text" id="issue" placeholder="Issue Description" required class="form-control mb-2">
+
+  <button type="submit" class="btn btn-success">Create Ticket</button>
+</form>
+
+<table class="table table-bordered" id="ticketTable">
+  <thead>
+    <tr>
+      <th>Machine Name</th>
+      <th>Issue</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+
+const TICKET_API = "http://localhost:4000/api/tickets";
+const MACHINE_API = "http://localhost:4000/api/machines";
+
+
+// ✅ Load Machines into Dropdown
+async function loadMachines() {
+  const res = await fetch(MACHINE_API);
+  const machines = await res.json();
+
+  const select = document.getElementById("machineSelect");
+  select.innerHTML = `<option value="">Select Machine</option>`; // reset
+
+  machines.forEach(machine => {
+    const option = document.createElement("option");
+    option.value = machine._id;
+    option.textContent = machine.name;
+    select.appendChild(option);
+  });
+}
+
+
+// ✅ Load Tickets (FIXED ERROR HERE)
+async function loadTickets() {
+  const res = await fetch(TICKET_API);
+  const tickets = await res.json();
+
+  const tbody = document.querySelector("#ticketTable tbody");
+  tbody.innerHTML = "";
+
+  tickets.forEach(ticket => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${ticket.machine ? ticket.machine.name : "Deleted Machine"}</td>
+        <td>${ticket.issue}</td>
+        <td>${ticket.status}</td>
+        <td>
+          ${ticket.status === "Open" 
+            ? `<button class="btn btn-sm btn-danger" onclick="closeTicket('${ticket._id}')">Close</button>` 
+            : ""}
+        </td>
+      </tr>
+    `;
+  });
+}
+
+
+// ✅ Create Ticket
+document.getElementById("ticketForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const machine = document.getElementById("machineSelect").value;
+  const issue = document.getElementById("issue").value;
+
+  await fetch(TICKET_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      machine,
+      issue
+    })
+  });
+
+  document.getElementById("ticketForm").reset();
+  loadTickets();
+});
+
+
+// ✅ Close Ticket
+async function closeTicket(id) {
+  await fetch(`${TICKET_API}/${id}/close`, {
+    method: "PUT"
+  });
+
+  loadTickets();
+}
+
+
+// ✅ Initial Load
+loadMachines();
+loadTickets();
+
+</script>
+
+</body>
+</html>

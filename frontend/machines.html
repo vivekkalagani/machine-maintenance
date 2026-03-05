@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Machines</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-dark">
+  <div class="container-fluid">
+    <span class="navbar-brand">Machines</span>
+    <a href="index.html" class="text-white">Dashboard</a>
+  </div>
+</nav>
+
+<div class="container mt-4">
+
+  <!-- ADD MACHINE FORM -->
+  <h4>Add New Machine</h4>
+  <form id="machineForm" class="mb-4">
+    <input type="text" id="name" class="form-control mb-2" placeholder="Machine Name" required>
+    <input type="text" id="location" class="form-control mb-2" placeholder="Location" required>
+
+    <label>Last Maintenance Date</label>
+    <input type="date" id="lastDate" class="form-control mb-2" required>
+
+    <label>Maintenance Interval (Days)</label>
+    <input type="number" id="interval" class="form-control mb-2" value="30" required>
+
+    <button class="btn btn-primary">Add Machine</button>
+  </form>
+
+  <!-- MACHINE TABLE -->
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Location</th>
+        <th>Last Maintenance</th>
+        <th>Next Due</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="machineTable"></tbody>
+  </table>
+
+</div>
+
+<script>
+
+// LOAD MACHINES
+function loadMachines() {
+  fetch("http://localhost:4000/api/machines")
+  .then(res => res.json())
+  .then(data => {
+    let rows = "";
+    data.forEach(m => {
+      rows += `
+        <tr>
+          <td>${m.name}</td>
+          <td>${m.location}</td>
+          <td>${new Date(m.lastMaintenanceDate).toLocaleDateString()}</td>
+          <td>${new Date(m.nextDueDate).toLocaleDateString()}</td>
+          <td>
+            <span class="${
+              m.status === 'Overdue' ? 'text-danger fw-bold' :
+              m.status === 'Under Maintenance' ? 'text-warning fw-bold' :
+              'text-success fw-bold'
+            }">
+              ${m.status}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-info btn-sm me-1"
+              onclick="viewMachine('${m._id}')">
+              View
+            </button>
+
+            <button class="btn btn-success btn-sm me-1"
+              onclick="updateMaintenance('${m._id}')">
+              Update
+            </button>
+
+            <button class="btn btn-danger btn-sm"
+              onclick="deleteMachine('${m._id}')">
+              Delete
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+    machineTable.innerHTML = rows;
+  });
+}
+
+
+// VIEW SINGLE MACHINE DETAILS
+function viewMachine(id) {
+  fetch("http://localhost:4000/api/machines/" + id)
+  .then(res => res.json())
+  .then(machine => {
+    alert(
+      "Machine: " + machine.name +
+      "\nLocation: " + machine.location +
+      "\nStatus: " + machine.status +
+      "\nLast Maintenance: " + new Date(machine.lastMaintenanceDate).toLocaleDateString() +
+      "\nNext Due: " + new Date(machine.nextDueDate).toLocaleDateString() +
+      "\nMaintenance Interval: " + machine.maintenanceInterval + " days"
+    );
+  });
+}
+
+
+// UPDATE MAINTENANCE (NEW)
+function updateMaintenance(id) {
+
+  if (!confirm("Update maintenance for this machine?")) {
+    return;
+  }
+
+  fetch("http://localhost:4000/api/machines/updateDue/" + id, {
+    method: "PUT"
+  })
+  .then(res => res.json())
+  .then(() => {
+    alert("Maintenance Updated Successfully");
+    loadMachines();
+  })
+  .catch(error => {
+    console.error("Error:", error);
+    alert("Failed to update maintenance");
+  });
+}
+
+
+// DELETE MACHINE
+function deleteMachine(id) {
+
+  if (!confirm("Are you sure you want to delete this machine?")) {
+    return;
+  }
+
+  fetch("http://localhost:4000/api/machines/" + id, {
+    method: "DELETE"
+  })
+  .then(res => res.json())
+  .then(() => {
+    alert("Machine Deleted Successfully");
+    loadMachines();
+  })
+  .catch(error => {
+    console.error("Error:", error);
+    alert("Failed to delete machine");
+  });
+}
+
+
+// ADD MACHINE
+document.getElementById("machineForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const lastDateValue = document.getElementById("lastDate").value;
+  const intervalValue = parseInt(document.getElementById("interval").value);
+
+  const nextDate = new Date(lastDateValue);
+  nextDate.setDate(nextDate.getDate() + intervalValue);
+
+  fetch("http://localhost:4000/api/machines", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: document.getElementById("name").value,
+      location: document.getElementById("location").value,
+      lastMaintenanceDate: lastDateValue,
+      nextDueDate: nextDate,
+      maintenanceInterval: intervalValue
+    })
+  })
+  .then(res => res.json())
+  .then(() => {
+    alert("Machine Added Successfully");
+    loadMachines();
+    document.getElementById("machineForm").reset();
+  });
+});
+
+
+// INITIAL LOAD
+loadMachines();
+
+</script>
+
+</body>
+</html>
